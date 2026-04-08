@@ -1,0 +1,114 @@
+-- Crear base de datos
+drop database if exists nig;
+CREATE DATABASE nig;
+USE nig;
+
+-- Tabla Carta
+CREATE TABLE Carta (
+    idCarta INT PRIMARY KEY AUTO_INCREMENT,
+    rareza VARCHAR(20),
+    nombre VARCHAR(39),
+    nivelCarta INT,
+    experiencia INT
+);
+
+-- Tabla Jugadores
+CREATE TABLE Jugadores (
+    idJugador INT PRIMARY KEY AUTO_INCREMENT,
+    nombre VARCHAR(39),
+    nivelCuenta INT,
+    copas INT DEFAULT 0,
+    idCarta INT,
+    FOREIGN KEY (idCarta) REFERENCES Carta(idCarta)
+);
+
+-- Tabla Batallas
+CREATE TABLE Batallas (
+    idBatalla INT PRIMARY KEY AUTO_INCREMENT,
+    idJugador1 INT,
+    idJugador2 INT,
+    ganador INT,
+    FOREIGN KEY (idJugador1) REFERENCES Jugadores(idJugador),
+    FOREIGN KEY (idJugador2) REFERENCES Jugadores(idJugador)
+);
+
+-- Insertar jugadores
+INSERT INTO Jugadores(nombre, nivelCuenta, copas)
+VALUES
+('Jugador1', 1, 100),
+('Jugador2', 1, 200);
+
+
+DELIMITER $$
+
+CREATE PROCEDURE RegistrarBatalla(
+    IN p_jugador1 INT,
+    IN p_jugador2 INT,
+    IN p_ganador INT
+)
+BEGIN
+    INSERT INTO Batallas(idJugador1, idJugador2, ganador)
+    VALUES(p_jugador1, p_jugador2, p_ganador);
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE PROCEDURE SumarCopas(
+    IN p_jugador INT,
+    IN p_copas INT
+)
+BEGIN
+    UPDATE Jugadores
+    SET copas = copas + p_copas
+    WHERE idJugador = p_jugador;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE PROCEDURE VerRanking()
+BEGIN
+    SELECT *
+    FROM Jugadores
+    ORDER BY copas DESC;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER NoCopasNegativas
+BEFORE UPDATE ON Jugadores
+FOR EACH ROW
+BEGIN
+    IF NEW.copas < 0 THEN
+        SET NEW.copas = 0;
+    END IF;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER MostrarGanador
+AFTER INSERT ON Batallas
+FOR EACH ROW
+BEGIN
+    INSERT INTO LogBatallas(mensaje)
+    VALUES(CONCAT('El ganador es el jugador ID: ', NEW.ganador));
+END$$
+
+DELIMITER ;
+
+
+-- Registrar batalla
+CALL RegistrarBatalla(1, 2, 1);
+
+-- Sumar copas
+CALL SumarCopas(1, 450);
+
+-- Ver ranking
+CALL VerRanking();
